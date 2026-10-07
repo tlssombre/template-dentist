@@ -1,6 +1,6 @@
 # Template de cabinet dentaire
 
-Site vitrine lumineux et animé avec espace d’administration pour les demandes de rendez-vous, l’équipe et les informations du cabinet.
+Site vitrine animé avec calendrier de réservation et administration des rendez-vous, horaires, absences, équipe et accès employés.
 
 ## Démarrage
 
@@ -9,18 +9,33 @@ npm ci
 npm run dev
 ```
 
-Le site visiteur est accessible à `/landing.html` (la racine y redirige) et l’administration à `/admin`. La base D1 est déclarée dans `.openai/hosting.json` et le schéma est versionné dans `drizzle/`. Pour modifier le schéma, éditer `db/schema.ts`, puis lancer `npm run db:generate` avant le déploiement.
+Le site visiteur est à `/landing.html` (la racine y redirige) et l’administration à `/admin`. La base D1 est déclarée dans `.openai/hosting.json`. Les migrations sont versionnées dans `drizzle/`. Après une modification de `db/schema.ts`, lancer `npm run db:generate` avant publication.
 
-## Administration
+## Réservations et disponibilités
 
-Le premier utilisateur connecté au Site privé active l’espace admin à `/admin`. Son identifiant devient le propriétaire de l’administration. Activez l’espace pendant que le Site est privé, avant de l’ouvrir aux visiteurs. L’accès aux données et toutes les modifications sont vérifiés côté serveur.
+Le calendrier affiche les 90 prochains jours, par créneaux de 30 minutes, en heure d’Abidjan (GMT). Les horaires par défaut sont du lundi au vendredi de 9 h à 17 h, le samedi de 9 h à 13 h et le dimanche fermé. L’admin peut changer les horaires hebdomadaires et bloquer des heures précises.
 
-Le formulaire du site enregistre les demandes dans D1. Il ne réserve pas automatiquement un créneau et n’envoie pas de notification. L’équipe et les coordonnées saisies dans l’admin apparaissent sur le site visiteur. Les intitulés des soins et le contenu éditorial restent dans `public/landing.html`.
+Une demande reste **en attente** et ne réserve pas encore le créneau. En l’acceptant, l’admin le rend immédiatement indisponible dans le calendrier visiteur. Une contrainte unique en base empêche deux rendez-vous acceptés sur la même date et heure. L’annulation libère le créneau. Le statut « Terminé » conserve le créneau occupé dans l’historique. La disponibilité est revérifiée à l’envoi et à l’acceptation.
+
+Le formulaire ne réserve pas automatiquement un rendez-vous confirmé et n’envoie pas de notification. Les anciennes demandes sans créneau restent consultables, mais doivent être recréées avec une date pour être acceptées.
+
+## Accès à l’administration
+
+Le premier utilisateur connecté au **Site privé** active l’administration à `/admin` et devient propriétaire. Il faut le faire avant tout changement de partage. Le propriétaire peut créer des accès employés par adresse e-mail :
+
+- **Responsable** : rendez-vous, calendrier, équipe et informations ;
+- **Accueil** : rendez-vous et calendrier ;
+- **Contenu** : équipe et informations.
+
+L’accès employé est vérifié sur le serveur à partir de l’adresse du compte ChatGPT connecté. Un employé doit également avoir accès au Site dans les réglages de partage ; l’ajout de son e-mail dans l’admin ne crée pas de compte ChatGPT et ne modifie pas le partage du Site. Le propriétaire seul gère les accès et peut les désactiver ou supprimer.
+
+L’équipe et les coordonnées saisies dans l’admin apparaissent sur le site visiteur. Les textes des soins restent dans `public/landing.html`.
 
 ## Vérification
 
 ```bash
+npx tsc --noEmit
 npm run build
 ```
 
-Les migrations sont appliquées lors de la publication par Sites. Pour une utilisation hors de Sites, configurer un environnement Cloudflare compatible et le binding D1 `DB`.
+Pour utiliser le code hors de Sites, configurer un environnement Cloudflare compatible avec le binding D1 `DB` et un fournisseur d’identité qui transmet de façon fiable les en-têtes d’utilisateur attendus.

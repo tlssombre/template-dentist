@@ -1,0 +1,2 @@
+import { getCalendar,inWindow } from '@/lib/calendar';
+export async function GET(request:Request){const date=new URL(request.url).searchParams.get('date')||'';if(!inWindow(date))return Response.json({error:'Choisissez une date dans les 90 prochains jours.'},{status:400});try{const calendar=await getCalendar(date);return Response.json({date,slots:calendar.slots},{headers:{'Cache-Control':'no-store'}})}catch{return Response.json({error:'Calendrier temporairement indisponible.'},{status:503})}}
