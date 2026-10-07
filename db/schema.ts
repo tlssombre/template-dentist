@@ -48,3 +48,12 @@ export const staffAccounts = sqliteTable('staff_accounts', {
   active: integer('active').notNull().default(1),
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
+export const beforeAfterCases = sqliteTable('before_after_cases', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  treatment: text('treatment').notNull().default(''),
+  imageUrl: text('image_url').notNull(),
+  afterOnTop: integer('after_on_top').notNull().default(1),
+  visible: integer('visible').notNull().default(1),
+  sortOrder: integer('sort_order').notNull().default(0),
+});

@@ -1,6 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { DEFAULT_HOURS,getCalendar,inWindow,isTime,minutes } from '@/lib/calendar';
 import { can,fail,getRole,person,sameOrigin } from '@/lib/admin-access';
+import { getBeforeAfterCases } from '@/lib/before-after';
 const roles=['manager','reception','content'];
 const text=(value:unknown,max:number)=>String(value??'').trim().slice(0,max);
 export async function GET(request:Request){
@@ -9,15 +10,16 @@ export async function GET(request:Request){
     const claimed=await env.DB!.prepare('SELECT user_id FROM admin_owners WHERE id=1').first<{user_id:string}>();
     if(!claimed)return Response.json({setup:true});
     const role=await getRole(request);if(!role)return fail('Accès réservé au personnel autorisé.',403);
-    const [appointments,team,settings,hours,blocks,employees]=await Promise.all([
+    const [appointments,team,settings,hours,blocks,employees,beforeAfter]=await Promise.all([
       can(role,'appointments')?env.DB!.prepare('SELECT id,name,email,reason,availability,scheduled_date AS scheduledDate,slot_time AS slotTime,status,created_at AS createdAt FROM appointments ORDER BY id DESC LIMIT 300').all():Promise.resolve({results:[]}),
       can(role,'content')?env.DB!.prepare('SELECT id,name,role,bio,sort_order AS sortOrder FROM team ORDER BY sort_order,id').all():Promise.resolve({results:[]}),
       can(role,'content')?env.DB!.prepare('SELECT key,value FROM settings').all():Promise.resolve({results:[]}),
       can(role,'calendar')?env.DB!.prepare('SELECT weekday,is_open AS isOpen,start_time AS startTime,end_time AS endTime FROM weekly_hours').all():Promise.resolve({results:[]}),
       can(role,'calendar')?env.DB!.prepare("SELECT id,date,time,note FROM calendar_blocks WHERE date>=date('now') ORDER BY date,time LIMIT 300").all():Promise.resolve({results:[]}),
       can(role,'employees')?env.DB!.prepare('SELECT id,name,email,role,active FROM staff_accounts ORDER BY id DESC').all():Promise.resolve({results:[]}),
+      can(role,'content')?getBeforeAfterCases(true):Promise.resolve([]),
     ]);
-    return Response.json({setup:false,role,appointments:appointments.results,team:team.results,settings:Object.fromEntries((settings.results as {key:string;value:string}[]).map(x=>[x.key,x.value])),hours:DEFAULT_HOURS.map(d=>(hours.results as {weekday:number}[]).find(x=>x.weekday===d.weekday)??d),blocks:blocks.results,employees:employees.results},{headers:{'Cache-Control':'no-store'}});
+    return Response.json({setup:false,role,appointments:appointments.results,team:team.results,settings:Object.fromEntries((settings.results as {key:string;value:string}[]).map(x=>[x.key,x.value])),hours:DEFAULT_HOURS.map(d=>(hours.results as {weekday:number}[]).find(x=>x.weekday===d.weekday)??d),blocks:blocks.results,employees:employees.results,beforeAfter},{headers:{'Cache-Control':'no-store'}});
   }catch{return fail('Données temporairement indisponibles.',503)}
 }
 export async function POST(request:Request){
@@ -32,7 +34,7 @@ export async function POST(request:Request){
       return (await getRole(request))==='owner'?Response.json({ok:true}):fail('Administration déjà activée.',409);
     }
     const role=await getRole(request), action=String(data.action||'');
-    const task=action==='status'?'appointments':action.startsWith('block-')||action==='hours'?'calendar':action.startsWith('team-')||action==='settings'?'content':'employees';
+    const task=action==='status'?'appointments':action.startsWith('block-')||action==='hours'?'calendar':action.startsWith('team-')||action.startsWith('before-after-')||action==='settings'?'content':'employees';
     if(!can(role,task))return fail('Vous n’avez pas les droits pour cette action.',403);
     const id=Number(data.id);
     if(action==='status'){
@@ -75,6 +77,17 @@ export async function POST(request:Request){
       if(!Number.isInteger(id)||id<1)return fail('Membre invalide.');await env.DB!.prepare('DELETE FROM team WHERE id=?').bind(id).run();
     }else if(action==='settings'){
       const statements=['cabinetName','tagline','phone','email','address','hours'].map(key=>env.DB!.prepare('INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').bind(key,text(data[key],300)));await env.DB!.batch(statements);
+    }else if(action==='before-after-save'){
+      const title=text(data.title,100),treatment=text(data.treatment,120),imageUrl=text(data.imageUrl,500);
+      const afterOnTop=data.afterOnTop===0?0:1,visible=data.visible===0?0:1,sortOrder=Number(data.sortOrder);
+      if(!title||!/^\/(?:avant-apres-[12]-(?:avant|apres)\.jpg|api\/before-after-media\?key=before-after%2F[a-f0-9-]{36}\.(?:jpg|png|webp))$/i.test(imageUrl)||!Number.isInteger(sortOrder)||sortOrder<0||sortOrder>999)return fail('Vérifiez le titre, l’image et l’ordre du cas.');
+      if(Number.isInteger(id)&&id>0){
+        const updated=await env.DB!.prepare('UPDATE before_after_cases SET title=?,treatment=?,image_url=?,after_on_top=?,visible=?,sort_order=? WHERE id=?').bind(title,treatment,imageUrl,afterOnTop,visible,sortOrder,id).run();
+        if(!updated.meta.changes)return fail('Cas introuvable.',404);
+      }else await env.DB!.prepare('INSERT INTO before_after_cases (title,treatment,image_url,after_on_top,visible,sort_order) VALUES (?,?,?,?,?,?)').bind(title,treatment,imageUrl,afterOnTop,visible,sortOrder).run();
+    }else if(action==='before-after-delete'){
+      if(!Number.isInteger(id)||id<1)return fail('Cas invalide.');
+      await env.DB!.prepare('DELETE FROM before_after_cases WHERE id=?').bind(id).run();
     }else if(action==='employee-save'){
       const name=text(data.name,100),email=text(data.email,180).toLowerCase(),staffRole=text(data.role,30),active=data.active===false?0:1;
       if(!name||!/^\S+@\S+\.\S+$/.test(email)||!roles.includes(staffRole))return fail('Nom, e-mail et fonction valides requis.');

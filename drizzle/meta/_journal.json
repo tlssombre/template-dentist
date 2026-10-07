@@ -15,6 +15,13 @@
       "when": 1791382138694,
       "tag": "0001_previous_black_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791408007026,
+      "tag": "0002_faithful_cargill",
+      "breakpoints": true
     }
   ]
 }
