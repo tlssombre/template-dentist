@@ -1,6 +1,6 @@
 # Template de cabinet dentaire
 
-Site vitrine animé avec calendrier de réservation et administration des rendez-vous, horaires, absences, équipe et accès employés.
+Site vitrine animé avec bouton de réservation flottant, calendrier compact et administration des rendez-vous, horaires, absences, équipe et accès employés.
 
 ## Démarrage
 
@@ -13,7 +13,7 @@ Le site visiteur est à `/landing.html` (la racine y redirige) et l’administra
 
 ## Réservations et disponibilités
 
-Le calendrier affiche les 90 prochains jours, par créneaux de 30 minutes, en heure d’Abidjan (GMT). Les horaires par défaut sont du lundi au vendredi de 9 h à 17 h, le samedi de 9 h à 13 h et le dimanche fermé. L’admin peut changer les horaires hebdomadaires et bloquer des heures précises.
+Le calendrier s’ouvre dans une fenêtre depuis le bouton flottant présent sur le site. Il affiche les 90 prochains jours, par créneaux de 30 minutes, en heure d’Abidjan (GMT). Les horaires par défaut sont du lundi au vendredi de 9 h à 17 h, le samedi de 9 h à 13 h et le dimanche fermé. L’admin peut changer les horaires hebdomadaires et bloquer des heures précises.
 
 Une demande reste **en attente** et ne réserve pas encore le créneau. En l’acceptant, l’admin le rend immédiatement indisponible dans le calendrier visiteur. Une contrainte unique en base empêche deux rendez-vous acceptés sur la même date et heure. L’annulation libère le créneau. Le statut « Terminé » conserve le créneau occupé dans l’historique. La disponibilité est revérifiée à l’envoi et à l’acceptation.
 
@@ -29,7 +29,7 @@ Le premier utilisateur connecté au **Site privé** active l’administration à
 
 L’accès employé est vérifié sur le serveur à partir de l’adresse du compte ChatGPT connecté. Un employé doit également avoir accès au Site dans les réglages de partage ; l’ajout de son e-mail dans l’admin ne crée pas de compte ChatGPT et ne modifie pas le partage du Site. Le propriétaire seul gère les accès et peut les désactiver ou supprimer.
 
-L’équipe et les coordonnées saisies dans l’admin apparaissent sur le site visiteur. Les textes des soins restent dans `public/landing.html`.
+La section équipe reste visible avec un état d’attente tant qu’aucun profil n’est ajouté. L’équipe et les coordonnées saisies dans l’admin apparaissent sur le site visiteur. Les textes des soins restent dans `public/landing.html`.
 
 ## Vérification
 
