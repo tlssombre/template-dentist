@@ -1,0 +1,2 @@
+import { env } from 'cloudflare:workers';
+export async function GET(){try{const [team,settings]=await Promise.all([env.DB!.prepare('SELECT name,role,bio FROM team ORDER BY sort_order,id').all(),env.DB!.prepare('SELECT key,value FROM settings').all()]);return Response.json({team:team.results,settings:Object.fromEntries((settings.results as {key:string;value:string}[]).map(x=>[x.key,x.value]))});}catch{return Response.json({team:[],settings:{}})}}
