@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: dental-house
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:render
+    disk:
+      name: dental-house-data
+      mountPath: /opt/render/project/src/.wrangler/state
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0

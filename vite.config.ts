@@ -53,8 +53,12 @@ export default defineConfig(async ({ command }) => {
 
   return {
     server: {
+      ...(process.env.LAN_PREVIEW === "1" ? { host: "0.0.0.0" } : {}),
       ...(managedLinux
         ? { host: "0.0.0.0", allowedHosts: ["terminal.local"] }
+        : {}),
+      ...(process.env.SITES_ALLOWED_HOST
+        ? { allowedHosts: [process.env.SITES_ALLOWED_HOST] }
         : {}),
       ...(isCodexSeatbeltSandbox
         ? { watch: { useFsEvents: false, usePolling: true } }
